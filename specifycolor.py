@@ -6,8 +6,7 @@ __module_name__ = "SpecifyColor"
 __module_author__ = "RubyPinch"
 __module_version__ = "1"
 __module_description__ = ("Specifies nick colors")
-# Partially based on tingping's wordhilight
-
+# Partially based on tingping's wordhilight and alias
 
 
 #Settings!
@@ -15,20 +14,21 @@ trigger_for=[
     'Channel Message',
     'Channel Action',
 ]
-
+setting_prefix="specifycolor_"
 
 
 #load settings
-users = xchat.get_pluginpref("SpecColor_users")
-users = {} if users is None else json.loads(users)
+users = dict()
+for pref in xchat.list_pluginpref():
+    if pref.startswith(setting_prefix):
+        name = pref[len(setting_prefix):]
+        users[name] = xchat.get_pluginpref(setting_prefix+name)
 
 
-
-
-edited = False
 # remove ^K, ^K##, ^K##,##
 stripper=re.compile(r'^\003(\d\d?(,\d\d?)?)?')
 
+edited = False
 def decolor_cb(word, word_eol, event, attr):
     global edited
     nick = stripper.sub('',word[0])
@@ -47,15 +47,16 @@ def decolor_cb(word, word_eol, event, attr):
 
 def setcolor_cb(word,word_eol,userdata):
     global users
-
     try:
-        users[word[1].lower()]=int(word[2])
+        users[word[1].lower()] = int(word[2])
     except (IndexError,ValueError):
         print("/setcolor <nick> <number>")
         return xchat.EAT_XCHAT
+    print("*\tColor has been set for \003{:02}{}".format(users[word[1].lower()],word[1]))
     if not xchat.set_pluginpref(
-      "SpecColor_users",
-      json.dumps(users,separators=(',',':'))):
+      setting_prefix + word[1].lower(), #Name
+      int(word[2]), #Color
+      ):
         print("SpecifyColor: Setting could not be saved!")
     return xchat.EAT_XCHAT
 
